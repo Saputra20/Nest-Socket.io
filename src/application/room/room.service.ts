@@ -5,6 +5,7 @@ import { Room } from '@schemas/room.schema';
 import { Model } from 'mongoose';
 import { JoinDTO } from './dto';
 import { User } from '@schemas/user.schema';
+import { Conversation } from '@schemas/conversation.schema';
 
 @Injectable()
 export class RoomService {
@@ -12,6 +13,7 @@ export class RoomService {
     @InjectModel(Room.name) private roomModel: Model<Room>,
     @InjectModel(Participant.name) private participantModel: Model<Participant>,
     @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(Conversation.name) private convModel: Model<Conversation>,
   ) {}
 
   async init(): Promise<Room[]> {
@@ -63,5 +65,18 @@ export class RoomService {
 
   participants(roomId: string): Promise<Participant[]> {
     return this.participantModel.find({ roomId }).exec();
+  }
+
+  async alreadyJoin(joinDTO: JoinDTO): Promise<boolean> {
+    const isJoin = await this.participantModel.findOne({
+      userId: joinDTO.userId,
+      roomId: joinDTO.roomId,
+    });
+
+    return isJoin ? true : false;
+  }
+
+  async conversation(roomId: string): Promise<Conversation[]> {
+    return this.convModel.find({ roomId });
   }
 }

@@ -105,6 +105,81 @@
         border-radius: 5px;
         cursor: pointer;
       }
+
+      .btn {
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      #snackbar {
+        visibility: hidden;
+        min-width: 250px;
+        margin-left: -125px;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-radius: 2px;
+        padding: 16px;
+        position: fixed;
+        z-index: 1;
+        left: 50%;
+        bottom: 30px;
+        font-size: 17px;
+      }
+
+      #snackbar.show {
+        visibility: visible;
+        -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        animation: fadein 0.5s, fadeout 0.5s 2.5s;
+      }
+
+      @-webkit-keyframes fadein {
+        from {
+          bottom: 0;
+          opacity: 0;
+        }
+        to {
+          bottom: 30px;
+          opacity: 1;
+        }
+      }
+
+      @keyframes fadein {
+        from {
+          bottom: 0;
+          opacity: 0;
+        }
+        to {
+          bottom: 30px;
+          opacity: 1;
+        }
+      }
+
+      @-webkit-keyframes fadeout {
+        from {
+          bottom: 30px;
+          opacity: 1;
+        }
+        to {
+          bottom: 0;
+          opacity: 0;
+        }
+      }
+
+      @keyframes fadeout {
+        from {
+          bottom: 30px;
+          opacity: 1;
+        }
+        to {
+          bottom: 0;
+          opacity: 0;
+        }
+      }
     </style>
   </head>
   <body>
@@ -118,10 +193,16 @@
         <div class="chat-header" id="room-name">
           <h2>Room Name</h2>
         </div>
-        <div class="chat-messages" id="chat-messages" style="padding-top: 50px">
-        </div>
+        <div
+          class="chat-messages"
+          id="chat-messages"
+          style="padding-top: 50px"
+        ></div>
 
-        <form id="form" action="" class="chat-input">
+        <div style="text-align: center; display: none" id="join">
+          <button class="btn" id="btn-join">Join</button>
+        </div>
+        <form id="form" action="" class="chat-input" style="display: none">
           <textarea
             placeholder="Type your message"
             id="input"
@@ -130,6 +211,7 @@
           <button>Send</button>
         </form>
       </div>
+      <div id="snackbar">Some text some message..</div>
     </div>
   </body>
   <script src="/socket.io/socket.io.js"></script>
@@ -160,19 +242,120 @@
 
     async function detailRoom(channel) {
       try {
+        // prepare element
+        document.getElementById('form').style.display = 'none';
+        document.getElementById('join').style.display = 'none';
+        const roomMessages = document.getElementById('chat-messages');
+
+        while (roomMessages.firstChild) {
+          roomMessages.removeChild(roomMessages.firstChild);
+        }
         var ul = document.getElementById('rooms');
+
+        // get detail room
         const response = await fetch(`/room/${channel}`, {
           method: 'GET',
         });
-
         const room = await response.json();
+
         document.getElementById(
           'room-name',
         ).innerHTML = `<h2>${room.name}</h2>`;
         roomId = room._id;
+
+        // check already join in room or not
+        const responseAlreadyJoin = await fetch(`/room/already-join`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: id, roomId: room._id }),
+        });
+        const alreadyJoin = await responseAlreadyJoin.json();
+
+        // checking
+        if (!alreadyJoin) {
+          document.getElementById('join').style.display = 'block';
+          document
+            .getElementById('btn-join')
+            .setAttribute('onClick', `joinRoom("${room._id}")`);
+        } else {
+          const responseMessages = await fetch(
+            `/room/conversation/${room._id}`,
+            {
+              method: 'GET',
+            },
+          );
+          const messages = await responseMessages.json();
+
+          for (const message of messages) {
+            const incomingMessageDiv = document.createElement('div');
+            incomingMessageDiv.classList.add('message', 'incoming');
+
+            const messageContentDiv = document.createElement('div');
+            messageContentDiv.classList.add('message-content');
+            messageContentDiv.innerHTML = `<b>${message.name}</b><br><span>${message.message}</span>`;
+
+            incomingMessageDiv.appendChild(messageContentDiv);
+            roomMessages.appendChild(incomingMessageDiv);
+          }
+          window.scrollTo(0, document.body.scrollHeight);
+
+          document.getElementById('form').style.display = 'flex';
+        }
       } catch (error) {
         console.error('An error occurred:', error);
       }
+    }
+
+    async function joinRoom(roomId) {
+      try {
+        const response = await fetch(`/room/join`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ userId: id, roomId: roomId }),
+        });
+        const result = await response.json();
+
+        const responseMessages = await fetch(`/room/conversation/${roomId}`, {
+          method: 'GET',
+        });
+        const messages = await responseMessages.json();
+        const roomMessages = document.getElementById('chat-messages');
+
+        while (roomMessages.firstChild) {
+          roomMessages.removeChild(roomMessages.firstChild);
+        }
+
+        for (const message of messages) {
+          const incomingMessageDiv = document.createElement('div');
+          incomingMessageDiv.classList.add('message', 'incoming');
+
+          const messageContentDiv = document.createElement('div');
+          messageContentDiv.classList.add('message-content');
+          messageContentDiv.innerHTML = `<b>${message.name}</b><br><span>${message.message}</span>`;
+
+          incomingMessageDiv.appendChild(messageContentDiv);
+          roomMessages.appendChild(incomingMessageDiv);
+        }
+        window.scrollTo(0, document.body.scrollHeight);
+
+        document.getElementById('join').style.display = 'none';
+        document.getElementById('form').style.display = 'flex';
+      } catch (error) {
+        console.error('An error occurred:', error);
+      }
+    }
+
+    function toast(msg) {
+      var x = document.getElementById('snackbar');
+      x.innerHTML = `${msg.name} - ${msg.message}`;
+      x.className = 'show';
+      setTimeout(function () {
+        x.className = x.className.replace('show', '');
+      }, 3000);
     }
 
     getRooms();
@@ -200,17 +383,21 @@
     });
 
     socket.on(id, function (msg) {
-      console.log(msg);
-      const incomingMessageDiv = document.createElement('div');
-      incomingMessageDiv.classList.add('message', 'incoming');
+      if (msg.roomId == roomId) {
+        const incomingMessageDiv = document.createElement('div');
+        incomingMessageDiv.classList.add('message', 'incoming');
 
-      const messageContentDiv = document.createElement('div');
-      messageContentDiv.classList.add('message-content');
-      messageContentDiv.textContent = msg;
+        const messageContentDiv = document.createElement('div');
+        messageContentDiv.classList.add('message-content');
+        messageContentDiv.innerHTML = `<b>${msg.name}</b><br><span>${msg.message}</span>`;
 
-      incomingMessageDiv.appendChild(messageContentDiv);
-      roomMessages.appendChild(incomingMessageDiv);
-      window.scrollTo(0, document.body.scrollHeight);
+        incomingMessageDiv.appendChild(messageContentDiv);
+        roomMessages.appendChild(incomingMessageDiv);
+        window.scrollTo(0, document.body.scrollHeight);
+      }
+      if(msg.userId !== id) {
+        toast(msg);
+      }
     });
   </script>
 </html>

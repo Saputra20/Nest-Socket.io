@@ -1,3 +1,4 @@
+import { InjectModel } from '@nestjs/mongoose';
 import {
   MessageBody,
   SubscribeMessage,
@@ -5,6 +6,10 @@ import {
   WebSocketServer,
   OnGatewayConnection,
 } from '@nestjs/websockets';
+import { Conversation } from '@schemas/conversation.schema';
+import { Participant } from '@schemas/participant.schema';
+import { User } from '@schemas/user.schema';
+import { Model } from 'mongoose';
 import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
@@ -13,6 +18,13 @@ import { Server, Socket } from 'socket.io';
   },
 })
 export class ChatGateway implements OnGatewayConnection {
+  constructor(
+    @InjectModel(Conversation.name)
+    private convertationModel: Model<Conversation>,
+    @InjectModel(Participant.name) private participantModel: Model<Participant>,
+    @InjectModel(User.name) private userModel: Model<User>,
+  ) {}
+
   @WebSocketServer()
   server: Server;
 
@@ -22,8 +34,34 @@ export class ChatGateway implements OnGatewayConnection {
   }
 
   @SubscribeMessage('message')
-  message(@MessageBody() data: any) {
-    console.log(data);
-    this.server.emit(data.userId, data.message);
+  async message(@MessageBody() data: any) {
+    const userDetail = await this.userModel.findById(data.userId);
+
+    if (!userDetail) return null;
+
+    const message = await this.convertationModel.create({
+      roomId: data.roomId,
+      message: data.message,
+      email: userDetail.email,
+      name: userDetail.name,
+      userId: userDetail._id,
+    });
+
+    if (!message) return null;
+
+    const participants = await this.participantModel
+      .find({
+        $and: [{ roomId: data.roomId }],
+      })
+      .then((resp) => resp.map((d) => d.userId));
+
+    for (const participant of participants) {
+      this.server.emit(participant, {
+        name: userDetail.name,
+        roomId: data.roomId,
+        userId: userDetail._id,
+        message: data.message,
+      });
+    }
   }
 }
