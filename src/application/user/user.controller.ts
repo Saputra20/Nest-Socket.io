@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Render } from '@nestjs/common';
 import { UserService } from './user.service';
 import { User } from '@schemas/user.schema';
 import { LoginDTO } from './dto';
@@ -7,10 +7,15 @@ import { LoginDTO } from './dto';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  @Get()
+  @Render('index')
+  index() {
+    return {};
+  }
+
   @HttpCode(200)
   @Post('login')
   create(@Body() loginDTO: LoginDTO): Promise<User> {
-    console.log(loginDTO);
     return this.userService.create(loginDTO);
   }
 }

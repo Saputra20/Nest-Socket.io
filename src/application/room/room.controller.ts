@@ -15,6 +15,12 @@ export class RoomController {
     return this.roomService.findAll();
   }
 
+  @HttpCode(200)
+  @Get('/:id')
+  async findOne(@Param('id') id: string): Promise<Room> {
+    return this.roomService.findOne(id);
+  }
+
   @HttpCode(201)
   @Post('join')
   async join(@Body() joinDTO: JoinDTO): Promise<Participant> {

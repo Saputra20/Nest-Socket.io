@@ -8,8 +8,12 @@ import { LoginDTO } from './dto';
 export class UserService {
   constructor(@InjectModel(User.name) private userModel: Model<User>) {}
 
-  create(loginDTO: LoginDTO): Promise<User> {
-    const createdUser = new this.userModel(loginDTO);
-    return createdUser.save();
+  async create(loginDTO: LoginDTO): Promise<User> {
+    const isNewUser = await this.userModel.findOne({ email: loginDTO.email });
+    if (!isNewUser) {
+      const createdUser = new this.userModel(loginDTO);
+      return createdUser.save();
+    }
+    return isNewUser;
   }
 }

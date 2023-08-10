@@ -27,8 +27,8 @@ export class RoomService {
           channel: 'room-2',
         },
         {
-          name: 'Room 2',
-          channel: 'room-2',
+          name: 'Room 3',
+          channel: 'room-3',
         },
       ]);
     }
@@ -37,6 +37,10 @@ export class RoomService {
 
   findAll(): Promise<Room[]> {
     return this.roomModel.find().exec();
+  }
+
+  findOne(id: string): Promise<Room> {
+    return this.roomModel.findOne({ $or: [{ channel: id }, { id }] });
   }
 
   async join(joinDTO: JoinDTO): Promise<Participant> {
