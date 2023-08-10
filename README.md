@@ -24,8 +24,8 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-[Video Apps](https://app.usebubbles.com/6caPvbiW6CDPvsWTaqZqMK/create-chat-from-scratch-using-nest-js-socket-io) Video Apps.
+- [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- [Video Apps](https://app.usebubbles.com/6caPvbiW6CDPvsWTaqZqMK/create-chat-from-scratch-using-nest-js-socket-io) Video Apps.
 
 ## Installation
 
